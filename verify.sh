@@ -265,7 +265,7 @@ if [ ! -f "$MCP_CONFIG" ]; then
     fail "Workspace MCP config missing at $MCP_CONFIG"
     detail "Run: bash setup.sh"
     if [ -f "$LEGACY_MCP_CONFIG" ]; then
-        detail "Or migrate the legacy config: jq '{mcpServers: .servers}' .vscode/mcp.json > .mcp.json"
+        detail "Or migrate the legacy config: jq '{servers: .servers}' .vscode/mcp.json > .mcp.json"
     fi
 elif grep -q "ABSOLUTE/PATH" "$MCP_CONFIG" 2>/dev/null; then
     fail "Workspace MCP config still contains placeholder paths"
@@ -287,14 +287,14 @@ except Exception as exc:
     print(f"parse_error\t{exc}")
     raise SystemExit(0)
 
-mcp_servers = cfg.get("mcpServers")
+mcp_servers = cfg.get("servers")
 if not isinstance(mcp_servers, dict):
-    print("parse_error\tmissing 'mcpServers' object")
+    print("parse_error\tmissing 'servers' object")
     raise SystemExit(0)
 
 server = mcp_servers.get("mempalace")
 if not isinstance(server, dict):
-    print("parse_error\tmissing 'mcpServers.mempalace' object")
+    print("parse_error\tmissing 'servers.mempalace' object")
     raise SystemExit(0)
 
 print(f"type\t{server.get('type', '')}")

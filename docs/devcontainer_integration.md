@@ -131,7 +131,7 @@ In `.mcp.json` at the devcontainer workspace root:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mempalace": {
       "type": "stdio",
       "command": "/home/<container-user>/.local/bin/uv",

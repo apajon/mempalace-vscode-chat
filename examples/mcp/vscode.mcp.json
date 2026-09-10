@@ -1,6 +1,6 @@
 {
   "_note": "This is a template. setup.sh generates the real .mcp.json automatically, pointing --directory at the canonical bridge path $HOME/.local/share/mempalace-mcp-bridge (a symlink created by setup.sh).",
-  "mcpServers": {
+  "servers": {
     "mempalace": {
       "type": "stdio",
       "command": "/ABSOLUTE/PATH/TO/uv",

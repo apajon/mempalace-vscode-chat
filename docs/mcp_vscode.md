@@ -22,7 +22,7 @@ Create or edit `.mcp.json` in your workspace:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mempalace": {
       "type": "stdio",
       "command": "/ABSOLUTE/PATH/TO/uv",
@@ -44,7 +44,7 @@ A ready-to-copy example is at `examples/mcp/vscode.mcp.json`.
 If you have an older `.vscode/mcp.json`, migrate it with:
 
 ```bash
-jq '{mcpServers: .servers}' .vscode/mcp.json > .mcp.json
+jq '{servers: .servers}' .vscode/mcp.json > .mcp.json
 ```
 
 > **Why absolute path?** MCP clients often launch processes in a limited environment where `$PATH` may not include your shell's customizations. Using an absolute path avoids "command not found" errors.

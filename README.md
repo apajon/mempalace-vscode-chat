@@ -77,7 +77,7 @@ The setup script generates `.mcp.json` automatically. To configure manually, cre
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mempalace": {
       "type": "stdio",
       "command": "/ABSOLUTE/PATH/TO/uv",
@@ -202,7 +202,7 @@ Local Memory (palace)  <- ~/.mempalace/palace
 If you already have a legacy `.vscode/mcp.json`, migrate it with:
 
 ```bash
-jq '{mcpServers: .servers}' .vscode/mcp.json > .mcp.json
+jq '{servers: .servers}' .vscode/mcp.json > .mcp.json
 ```
 
 The same setup step writes `mempalace-bridge-manifest.json` into the palace root. The file is intentionally small and easy to inspect manually: it records the bridge version, MemPalace version, ChromaDB version, Python version, storage backend and format, the supported compatibility line, and the creation timestamp. If a valid manifest already exists, setup preserves it. If the file exists but is malformed, setup replaces it with a fresh valid manifest.
