@@ -13,6 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_PYTHON="$REPO_ROOT/.venv/bin/python"
 MCP_CONFIG="$REPO_ROOT/.mcp.json"
 LEGACY_MCP_CONFIG="$REPO_ROOT/.vscode/mcp.json"
+CANONICAL_LINK="${HOME}/.local/share/mempalace-mcp-bridge"
 PYTHON_PIN_FILE="$REPO_ROOT/.python-version"
 SUPPORTED_CHROMA_LINE="0.6.x"
 
@@ -277,7 +278,7 @@ import json
 from pathlib import Path
 
 config_path = Path(r"$MCP_CONFIG")
-expected_args = ["run", "--directory", r"$REPO_ROOT", "python", "scripts/run_mcp_server.py"]
+expected_args = ["run", "--directory", r"$CANONICAL_LINK", "python", "scripts/run_mcp_server.py"]
 
 try:
     with config_path.open("r", encoding="utf-8") as handle:
@@ -332,7 +333,7 @@ PYEOF
         detail "Run: bash setup.sh"
     elif [ "$MCP_ARGS_JSON" != "$EXPECTED_ARGS_JSON" ]; then
         fail "Workspace MCP config does not use the guarded launcher command"
-        detail "Expected: uv run --directory $REPO_ROOT python scripts/run_mcp_server.py"
+        detail "Expected: uv run --directory $CANONICAL_LINK python scripts/run_mcp_server.py"
         detail "Run: bash setup.sh"
     else
         pass "Workspace MCP config points to the guarded launcher ($MCP_CONFIG)"
@@ -347,11 +348,31 @@ PYEOF
     fi
 fi
 
+# ─── 8b. Canonical bridge link ────────────────────────────────────────────────
+
+REPO_ROOT_PHYS="$(cd "$REPO_ROOT" && pwd -P)"
+
+if [ -L "$CANONICAL_LINK" ]; then
+    LINK_TARGET="$(readlink -f "$CANONICAL_LINK" 2>/dev/null || readlink "$CANONICAL_LINK" 2>/dev/null || true)"
+    if [ "$LINK_TARGET" = "$REPO_ROOT_PHYS" ]; then
+        pass "Canonical bridge link resolves to this repository ($CANONICAL_LINK -> $LINK_TARGET)"
+    else
+        fail "Canonical bridge link points elsewhere ($CANONICAL_LINK -> ${LINK_TARGET:-<broken>})"
+        detail "Run: bash setup.sh"
+    fi
+elif [ -e "$CANONICAL_LINK" ]; then
+    fail "Canonical bridge path exists but is not a symlink: $CANONICAL_LINK"
+    detail "Remove or rename it manually, then run: bash setup.sh"
+else
+    fail "Canonical bridge link is missing: $CANONICAL_LINK"
+    detail "Run: bash setup.sh"
+fi
+
 # ─── 9. MCP server startup (exact workspace command) ──────────────────────────
 
 if [ "$MCP_CONFIG_OK" = true ]; then
     MCP_LAUNCH_LOG="$TMPDIR/mcp-launch.log"
-    "${MCP_COMMAND}" run --directory "$REPO_ROOT" python scripts/run_mcp_server.py < <(sleep 5) >"$MCP_LAUNCH_LOG" 2>&1 &
+    "${MCP_COMMAND}" run --directory "$CANONICAL_LINK" python scripts/run_mcp_server.py < <(sleep 5) >"$MCP_LAUNCH_LOG" 2>&1 &
     SERVER_PID=$!
     sleep 2
 

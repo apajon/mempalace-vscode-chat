@@ -60,6 +60,7 @@ MCP client (VS Code / Copilot Chat / other)
 | `uv` | Python environment and package manager |
 | `mempalace` CLI | Indexes files into local memory |
 | `scripts/run_mcp_server.py` | Enforces the supported ChromaDB line, then starts the MCP server |
+| `scripts/link_bridge.sh` | Maintains the canonical symlink `$HOME/.local/share/mempalace-mcp-bridge` |
 | `mempalace.mcp_server` | Exposes memory as MCP tools |
 | MCP client | Launches the server, sends tool calls |
 | LLM (remote) | Generates responses using memory context |
@@ -70,7 +71,7 @@ MCP client (VS Code / Copilot Chat / other)
 
 1. User opens a chat session in the MCP-compatible client
 2. Client reads `.mcp.json` (or equivalent config)
-3. Client launches `uv run --directory <repo> python scripts/run_mcp_server.py` as a subprocess
+3. Client launches `uv run --directory $HOME/.local/share/mempalace-mcp-bridge python scripts/run_mcp_server.py` as a subprocess (the canonical bridge path — a symlink to the real clone)
 4. Server starts in stdio mode and waits for MCP protocol messages
 5. When the user asks a question, the client may call `mempalace` tools
 6. Tools return relevant memory chunks
@@ -91,6 +92,14 @@ MemPalace stores its indexed data locally. Default location:
 The contents are not versioned (excluded by `.gitignore`). If you delete this directory, you need to re-run `mempalace mine`.
 
 During initialization, the bridge writes `mempalace-bridge-manifest.json` into the palace root. This is a narrow safety artifact, not a general config layer: it captures creation-time versions plus the storage compatibility line so future tooling can identify bridge-created palaces and reason about older storage more safely.
+
+### Bridge path vs palace path
+
+The bridge repository may be cloned anywhere. Installation exposes a stable
+canonical path — `$HOME/.local/share/mempalace-mcp-bridge` — as a symlink to
+the real clone. The palace remains host-owned under `~/.mempalace` and is never
+stored inside, or tied to, the repository location. See
+[canonical_link.md](canonical_link.md).
 
 ---
 

@@ -7,6 +7,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CANONICAL_LINK="${HOME}/.local/share/mempalace-mcp-bridge"
 
 info()  { echo "[INFO]  $*"; }
 ok()    { echo "[OK]    $*"; }
@@ -16,6 +17,14 @@ echo "════════════════════════�
 echo " MemPalace MCP Bridge — Setup"
 echo "════════════════════════════════════════"
 echo ""
+
+# ─── Canonical bridge link ──────────────────────────────────────────────────
+# Expose this clone under the stable, location-independent path
+# $HOME/.local/share/mempalace-mcp-bridge so consumers never need to know
+# where the repo actually lives.
+
+info "Creating canonical bridge link..."
+bash "$REPO_ROOT/scripts/link_bridge.sh"
 
 # ─── 1. Bootstrap (uv + MemPalace) ───────────────────────────────────────────
 
@@ -67,7 +76,7 @@ MCP_CONFIG="$REPO_ROOT/.mcp.json"
 _needs_regen=true
 if [ -f "$MCP_CONFIG" ] && ! grep -q "ABSOLUTE/PATH" "$MCP_CONFIG" 2>/dev/null; then
     VENV_PYTHON="$REPO_ROOT/.venv/bin/python"
-    EXPECTED_ARGS_JSON='["run", "--directory", "'"$REPO_ROOT"'", "python", "scripts/run_mcp_server.py"]'
+    EXPECTED_ARGS_JSON='["run", "--directory", "'"$CANONICAL_LINK"'", "python", "scripts/run_mcp_server.py"]'
     _stored_dir=$("$VENV_PYTHON" -c "
 import json
 try:
@@ -98,7 +107,7 @@ except Exception:
     print('')
 " 2>/dev/null || true)
 
-    if [ "$_stored_dir" = "$REPO_ROOT" ] && [ "$_stored_uv" = "$UV_PATH" ] && [ "$_stored_args" = "$EXPECTED_ARGS_JSON" ]; then
+    if [ "$_stored_dir" = "$CANONICAL_LINK" ] && [ "$_stored_uv" = "$UV_PATH" ] && [ "$_stored_args" = "$EXPECTED_ARGS_JSON" ]; then
         _needs_regen=false
     fi
 fi
@@ -110,13 +119,13 @@ if [ "$_needs_regen" = true ]; then
     "mempalace": {
       "type": "stdio",
       "command": "$UV_PATH",
-      "args": ["run", "--directory", "$REPO_ROOT", "python", "scripts/run_mcp_server.py"]
+      "args": ["run", "--directory", "$CANONICAL_LINK", "python", "scripts/run_mcp_server.py"]
     }
   }
 }
 EOF
-    # --directory tells uv which project root to use so it picks up the correct
-    # .venv and MemPalace data regardless of where VS Code launches the server.
+    # --directory points at the canonical symlink, so uv resolves the same
+    # project root (and .venv) regardless of where VS Code launches the server.
     ok "MCP config written to $MCP_CONFIG"
 else
     ok "MCP config already up to date — not modified ($MCP_CONFIG)"

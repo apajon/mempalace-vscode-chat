@@ -26,7 +26,7 @@ Create or edit `.mcp.json` in your workspace:
     "mempalace": {
       "type": "stdio",
       "command": "/ABSOLUTE/PATH/TO/uv",
-      "args": ["run", "--directory", "/ABSOLUTE/PATH/TO/mempalace-mcp-bridge", "python", "scripts/run_mcp_server.py"]
+      "args": ["run", "--directory", "$HOME/.local/share/mempalace-mcp-bridge", "python", "scripts/run_mcp_server.py"]
     }
   }
 }
@@ -53,7 +53,11 @@ jq '{mcpServers: .servers}' .vscode/mcp.json > .mcp.json
 
 ## Working directory
 
-`uv run --directory /ABSOLUTE/PATH/TO/mempalace-mcp-bridge python scripts/run_mcp_server.py` should be run from the repository root so the guarded launcher can enforce the supported ChromaDB line before starting `mempalace.mcp_server`.
+`uv run --directory $HOME/.local/share/mempalace-mcp-bridge python scripts/run_mcp_server.py` should be run from the canonical bridge path so the guarded launcher can enforce the supported ChromaDB line before starting `mempalace.mcp_server`.
+
+`$HOME/.local/share/mempalace-mcp-bridge` is a symlink to the real clone,
+created automatically by `setup.sh` (see [canonical_link.md](canonical_link.md)).
+You never need to hard-code the clone location.
 
 If not, ensure `mempalace init` was run in or near the workspace that the MCP client opens.
 

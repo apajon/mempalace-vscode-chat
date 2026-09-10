@@ -22,10 +22,12 @@ Mounting the palace from the host ensures consistency across:
 
 | Element | Host side | Container side |
 |---|---|---|
-| **MCP bridge** (`mempalace-mcp-bridge`) | `~/git/mempalace-mcp-bridge` | mounted read-only at `/opt/mempalace-mcp-bridge` |
+| **MCP bridge** (`mempalace-mcp-bridge`) | `$HOME/.local/share/mempalace-mcp-bridge` (symlink to the real clone) | mounted read-only at `/opt/mempalace-mcp-bridge` |
 | **Palace** (`~/.mempalace`) | `~/.mempalace` | `~/.mempalace` of the container user |
 
 **The bridge is not cloned inside the container.** Keeping it on the host and mounting it at a fixed path (`/opt/mempalace-mcp-bridge`) means scripts, MCP config, and hooks always reference the same location regardless of where each developer stores the repo on their machine.
+
+The host-side source is the **canonical bridge path** `$HOME/.local/share/mempalace-mcp-bridge`, which `setup.sh` creates as a symlink to the real clone (see [canonical_link.md](canonical_link.md)). The real clone may live anywhere; the devcontainer never needs to know where.
 
 **A shared palace is used** so that everything the agent stores inside the container is immediately visible on the host, and vice versa. The bind mount ensures both environments point to the same data without copying or syncing.
 
@@ -37,21 +39,22 @@ Mounting the palace from the host ensures consistency across:
 
 ## Prerequisites (host)
 
-> The reference integration assumes the bridge is cloned on the host at `~/git/mempalace-mcp-bridge`.
+> The bridge may be cloned anywhere. The only requirement is that the normal
+> bridge install has been run once, which creates the canonical symlink at
+> `$HOME/.local/share/mempalace-mcp-bridge`.
 
-1. Clone the `mempalace-mcp-bridge` repo at that location:
+1. Clone the `mempalace-mcp-bridge` repo wherever you like:
 
    ```bash
-   mkdir -p ~/git
    git clone https://github.com/apajon/mempalace-mcp-bridge.git ~/git/mempalace-mcp-bridge
+   # ...or any other location
    ```
 
-   > If your team uses another host path, replace `~/git/mempalace-mcp-bridge` consistently in the devcontainer mounts and host-side setup commands below.
-
-2. Initialise the palace on the host if you haven't already:
+2. Run the normal bridge install once. This creates the canonical symlink
+   `$HOME/.local/share/mempalace-mcp-bridge` pointing at the real clone:
 
    ```bash
-   bash ~/git/mempalace-mcp-bridge/setup.sh
+   bash ~/git/mempalace-mcp-bridge/setup.sh   # or the path where you cloned it
    ```
 
 3. Make sure `uv` is available in the devcontainer Docker image.
@@ -63,7 +66,7 @@ Mounting the palace from the host ensures consistency across:
 In `devcontainer.json`, add an `initializeCommand` that prepares the host-side directory before Docker creates the container:
 
 ```json
-"initializeCommand": "mkdir -p ${HOME:-$(echo ~)}/git/mempalace-mcp-bridge || true"
+"initializeCommand": "mkdir -p ${HOME:-$(echo ~)}/.local/share || true"
 ```
 
 This does two things:
@@ -81,11 +84,14 @@ In `devcontainer.json`, add the following mounts:
 
 ```json
 "mounts": [
-  "source=${localEnv:HOME}/git/mempalace-mcp-bridge,target=/opt/mempalace-mcp-bridge,type=bind,consistency=cached,readonly",
+  "source=${localEnv:HOME}/.local/share/mempalace-mcp-bridge,target=/opt/mempalace-mcp-bridge,type=bind,consistency=cached,readonly",
   "source=${localEnv:HOME}/.mempalace,target=/home/<container-user>/.mempalace,type=bind"
 ]
 ```
 
+> The bridge mount source is the canonical symlink created by `setup.sh`;
+> Docker resolves the symlink and mounts the real clone.
+>
 > Replace `<container-user>` with the username inside the container (`dev`, `vscode`, `user`, etc.).
 > Check with `whoami` in a devcontainer terminal.
 >
@@ -108,7 +114,7 @@ if [ -f "$MEMPALACE_DIR/pyproject.toml" ]; then
     bash "$MEMPALACE_DIR/scripts/check_palace_health.sh" || true
     echo 'MemPalace: ready'
 else
-    echo 'MemPalace: not available, skipping (clone ~/git/mempalace-mcp-bridge on the host and rebuild the container to enable it)'
+    echo 'MemPalace: not available, skipping (run bash setup.sh on the host to create the canonical bridge link, then rebuild the container to enable it)'
 fi
 ```
 
@@ -154,7 +160,7 @@ VS Code Copilot will start the MCP server automatically when the chat is opened.
 
 | File | Change |
 |---|---|
-| `devcontainer.json` | Robust `initializeCommand` + readonly mount from `${localEnv:HOME}/git/mempalace-mcp-bridge` |
+| `devcontainer.json` | Robust `initializeCommand` + readonly mount from `${localEnv:HOME}/.local/share/mempalace-mcp-bridge` (the canonical bridge path) |
 | `post-create.sh` | Conditional block: `UV_PROJECT_ENVIRONMENT=... uv sync` + `check_palace_health.sh` |
 | `.mcp.json` | MCP server config with `env.MEMPALACE_PALACE_PATH` |
 
@@ -164,9 +170,9 @@ VS Code Copilot will start the MCP server automatically when the chat is opened.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `initializeCommand` fails because `HOME` is empty | `userEnvProbe` timed out or shell startup did not fully initialise the environment | Use `mkdir -p ${HOME:-$(echo ~)}/git/mempalace-mcp-bridge || true` so the command still resolves a host home directory |
-| `MemPalace: not available, skipping` | Empty mount — `pyproject.toml` missing | Verify that `~/git/mempalace-mcp-bridge` exists on the host and that the mount points to the repo root |
-| Bridge mount is empty in the container | `~/git/mempalace-mcp-bridge` is missing on the host or mounted from the wrong absolute path | Clone the bridge at `~/git/mempalace-mcp-bridge`, or replace the mount source with the correct absolute host path |
+| `initializeCommand` fails because `HOME` is empty | `userEnvProbe` timed out or shell startup did not fully initialise the environment | Use `mkdir -p ${HOME:-$(echo ~)}/.local/share || true` so the command still resolves a host home directory |
+| `MemPalace: not available, skipping` | Empty mount — `pyproject.toml` missing | Verify that `$HOME/.local/share/mempalace-mcp-bridge` exists on the host and resolves to the real clone, and that the mount points to it |
+| Bridge mount is empty in the container | `$HOME/.local/share/mempalace-mcp-bridge` is missing on the host or mounted from the wrong absolute path | Run `bash setup.sh` in the real clone to create the canonical symlink, or replace the mount source with the correct absolute host path |
 | `uv sync` fails with a write or permission error under `/opt/mempalace-mcp-bridge` | The bridge repo is mounted read-only | Set `UV_PROJECT_ENVIRONMENT=/home/<container-user>/.venv/mempalace-mcp-bridge` before `uv sync` |
 | `"No palace found"` in MCP tools | Palace not mounted or `MEMPALACE_PALACE_PATH` missing/incorrect | Check the `~/.mempalace` bind mount and the `env.MEMPALACE_PALACE_PATH` key in `.mcp.json` |
 | Palace present on host but empty in container | Incorrect `<container-user>` in the mount or in `MEMPALACE_PALACE_PATH` | Run `whoami` inside the container and fix both occurrences of `<container-user>` |

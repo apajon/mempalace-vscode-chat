@@ -1,10 +1,10 @@
 {
   "_comment": "Generic MCP stdio server config. Adapt to your specific MCP client's config format.",
-  "_note": "Replace /ABSOLUTE/PATH/TO/uv with the output of: which uv",
+  "_note": "Replace /ABSOLUTE/PATH/TO/uv with the output of: which uv. The --directory value is the canonical bridge path $HOME/.local/share/mempalace-mcp-bridge, a symlink created by setup.sh — it does NOT depend on where the repo is cloned.",
   "mcpServers": {
     "mempalace": {
       "command": "/ABSOLUTE/PATH/TO/uv",
-      "args": ["run", "--directory", "/ABSOLUTE/PATH/TO/mempalace-mcp-bridge", "python", "scripts/run_mcp_server.py"],
+      "args": ["run", "--directory", "$HOME/.local/share/mempalace-mcp-bridge", "python", "scripts/run_mcp_server.py"],
       "env": {}
     }
   }

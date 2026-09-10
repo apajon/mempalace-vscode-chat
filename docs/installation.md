@@ -131,3 +131,23 @@ bash scripts/init_palace.sh       # Initialize MemPalace
 bash scripts/mine_sample_data.sh  # Index the example notes
 bash scripts/verify_install.sh    # Confirm everything works
 ```
+
+---
+
+## 9. Canonical bridge path
+
+The bridge can be cloned anywhere. The installer (`setup.sh`) exposes a single
+stable, location-independent path:
+
+```
+$HOME/.local/share/mempalace-mcp-bridge
+```
+
+This path is a **symlink** to the real clone, created automatically by
+`setup.sh` (via `scripts/link_bridge.sh`). Consumers — classic workspaces,
+VS Code MCP, devcontainers, scripts — reference only this canonical path and
+never the real clone location.
+
+The palace stays separate and host-owned under `$HOME/.mempalace`.
+
+See [canonical_link.md](canonical_link.md) for the full contract.

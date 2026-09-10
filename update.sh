@@ -18,6 +18,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CANONICAL_LINK="${HOME}/.local/share/mempalace-mcp-bridge"
 
 info()  { echo "[INFO]  $*"; }
 ok()    { echo "[OK]    $*"; }
@@ -28,6 +29,11 @@ echo "════════════════════════�
 echo " MemPalace MCP Bridge — Update"
 echo "════════════════════════════════════════"
 echo ""
+
+# ─── Canonical bridge link ──────────────────────────────────────────────────
+
+info "Ensuring canonical bridge link..."
+bash "$REPO_ROOT/scripts/link_bridge.sh"
 
 # ─── 1. Pull latest changes from this repo ────────────────────────────────────
 
@@ -94,8 +100,8 @@ fi
 
 # ─── 3. Revalidate .mcp.json ────────────────────────────────────────────────
 #
-# The config embeds absolute paths (uv binary + repo root).
-# If the repo was moved, or uv was reinstalled elsewhere, those paths are stale.
+# The config embeds absolute paths (uv binary + canonical bridge link).
+# If the canonical link or uv path changed, those paths are stale.
 # Detect that and regenerate rather than silently leaving a broken config.
 
 info "Step 3/4 — Checking .mcp.json..."
@@ -154,8 +160,8 @@ except Exception:
     print('')
 " 2>/dev/null || true)
 
-    if [ "$STORED_DIR" != "$REPO_ROOT" ]; then
-        warn "MCP config points to '$STORED_DIR' but repo is now at '$REPO_ROOT'."
+    if [ "$STORED_DIR" != "$CANONICAL_LINK" ]; then
+        warn "MCP config points to '$STORED_DIR' but the canonical bridge path is '$CANONICAL_LINK'."
         warn "Regenerating .mcp.json with correct paths."
         NEEDS_REGEN=true
     else
@@ -178,7 +184,7 @@ try:
 except Exception:
     print('')
 " 2>/dev/null || true)
-        EXPECTED_ARGS_JSON='["run", "--directory", "'"$REPO_ROOT"'", "python", "scripts/run_mcp_server.py"]'
+        EXPECTED_ARGS_JSON='["run", "--directory", "'"$CANONICAL_LINK"'", "python", "scripts/run_mcp_server.py"]'
 
         if [ -n "$STORED_UV" ] && [ ! -x "$STORED_UV" ]; then
             warn "uv path in MCP config ('$STORED_UV') no longer exists — will regenerate."
@@ -200,7 +206,7 @@ if [ "$NEEDS_REGEN" = true ]; then
     "mempalace": {
       "type": "stdio",
       "command": "$UV_PATH",
-      "args": ["run", "--directory", "$REPO_ROOT", "python", "scripts/run_mcp_server.py"]
+      "args": ["run", "--directory", "$CANONICAL_LINK", "python", "scripts/run_mcp_server.py"]
     }
   }
 }
